@@ -2,6 +2,8 @@
 
 import { useState, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
+import { SplineScene } from '@/components/ui/splite'
+import { Spotlight } from '@/components/ui/spotlight'
 import { Upload } from 'lucide-react'
 
 interface DragDropUploadProps {
@@ -47,41 +49,61 @@ export default function DragDropUpload({ onUpload }: DragDropUploadProps) {
   }
 
   return (
-    <div className="h-screen flex items-center justify-center p-8">
-      <div className="w-full max-w-2xl">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">PDF Page Splitter</h1>
-          <p className="text-muted-foreground">
-            Split your PDF into individual pages
+    <div className="h-screen flex items-center justify-center p-8 relative overflow-hidden">
+      <div className="w-full max-w-6xl">
+        <div className="text-center mb-8 relative z-10">
+          <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400">
+            PDF Page Splitter
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Drop your PDF on the robot to split it into individual pages
           </p>
         </div>
 
-        <Card
-          className={`cursor-pointer transition-all border-2 border-dashed ${
-            isDragOver
-              ? 'border-primary bg-primary/5'
-              : 'border-muted-foreground/25 hover:border-primary/50'
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <CardContent className="flex flex-col items-center justify-center py-16 px-8">
-            <div className="mb-4">
-              <Upload className="w-16 h-16 text-muted-foreground" />
+        <div className="relative h-[600px]">
+          <Spotlight className="top-0 left-0" size={300} />
+
+          {/* 3D Robot Scene with Drop Zone */}
+          <div
+            className={`h-full cursor-pointer transition-all ${
+              isDragOver ? 'scale-110' : 'scale-100'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <SplineScene
+              scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+              className="w-full h-full"
+            />
+          </div>
+
+          {/* Bottom Text Overlay */}
+          <div className="absolute bottom-0 left-0 right-0 pb-8 pointer-events-none">
+            <div className="text-center space-y-2 bg-gradient-to-t from-background/80 to-transparent pt-8 pb-4">
+              <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Upload className="w-5 h-5" />
+                <p className="text-sm font-medium">
+                  Drag & drop PDF here or click to browse
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground/70">
+                PDF files only • Max 100MB
+              </p>
             </div>
-            <h3 className="text-xl font-semibold mb-2">
-              Drop your PDF here
-            </h3>
-            <p className="text-muted-foreground text-center">
-              or <span className="text-primary font-medium">click to browse</span>
-            </p>
-            <p className="text-sm text-muted-foreground mt-4">
-              PDF files only • Max 100MB
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* Drag Over Overlay */}
+          {isDragOver && (
+            <div className="absolute inset-0 bg-primary/20 backdrop-blur-md flex items-center justify-center pointer-events-none border-4 border-primary border-dashed rounded-lg">
+              <div className="text-center">
+                <Upload className="w-20 h-20 mx-auto mb-4 text-primary animate-bounce" />
+                <p className="text-2xl font-bold text-primary">Drop PDF on the Robot!</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         <input
           ref={fileInputRef}
