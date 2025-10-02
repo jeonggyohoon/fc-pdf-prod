@@ -38,57 +38,52 @@ tags: [architecture, guidelines, typescript, nextjs]
 ```
 D:\project\PDF\
 ├── app/                          # Next.js App Router
-│   ├── layout.tsx               # Root layout (메타데이터, 폰트)
-│   ├── page.tsx                 # 메인 페이지 (업로드/뷰어/분할 뷰)
-│   ├── globals.css              # 전역 스타일
-│   └── api/                     # API Routes
-│       ├── upload/
-│       │   └── route.ts         # PDF 업로드 엔드포인트
-│       └── files/
-│           ├── route.ts         # 파일 목록 조회
-│           └── [filename]/
-│               └── route.ts     # 특정 파일 조회/삭제
+│   ├── layout.tsx               # Root layout (메타데이터, 폰트, 다크모드 설정)
+│   ├── page.tsx                 # 메인 페이지 (3단계 상태: idle/processing/complete)
+│   └── globals.css              # 전역 스타일 (Tailwind + 다크모드 CSS 변수)
 │
 ├── components/                   # React 컴포넌트
 │   ├── DragDropUpload.tsx       # 드래그 앤 드롭 업로드 UI
-│   ├── FileList.tsx             # 업로드된 파일 목록
-│   ├── SimplePDFViewer.tsx      # PDF 미리보기 뷰어
 │   ├── PDFProcessor.tsx         # PDF 페이지 분할 처리 로직
-│   ├── ProcessingStatus.tsx     # 처리 진행 상태 UI (기본)
-│   ├── DetailedProgress.tsx     # 상세 진행 상태 UI (Phase 2)
-│   ├── DownloadManager.tsx      # 개별/일괄 다운로드 관리
-│   ├── PagePreview.tsx          # 페이지 미리보기 카드 (Phase 2)
-│   ├── PreviewGrid.tsx          # 썸네일 그리드 뷰 (Phase 2)
-│   └── ThemeToggle.tsx          # 다크 모드 토글 (Phase 2)
-│
-├── contexts/                    # React Context
-│   └── ThemeContext.tsx         # 테마 관리 Context (Phase 2)
+│   ├── ProcessingView.tsx       # 처리 진행 상태 UI
+│   ├── ResultView.tsx           # 결과 화면 (다운로드 버튼, 그리드)
+│   ├── PagePreview.tsx          # 페이지 미리보기 카드
+│   ├── PreviewGrid.tsx          # 썸네일 그리드 뷰
+│   ├── ThemeToggle.tsx          # 다크/라이트 모드 토글 버튼
+│   └── ui/                      # shadcn/ui 컴포넌트
+│       ├── button.tsx           # 버튼 (outline/default/secondary 변형)
+│       ├── card.tsx             # 카드
+│       ├── progress.tsx         # 프로그레스 바
+│       ├── badge.tsx            # 뱃지
+│       └── alert.tsx            # 알림
 │
 ├── hooks/                       # Custom Hooks
-│   ├── useProgress.ts           # 진행 상태 관리 Hook (Phase 2)
-│   └── usePageSelection.ts      # 페이지 선택 관리 Hook (Phase 3)
+│   ├── useProgress.ts           # 진행 상태 관리 Hook
+│   └── useTheme.ts              # 테마 상태 관리 Hook (localStorage 연동)
 │
 ├── lib/                         # 유틸리티 라이브러리
 │   ├── pdf/
 │   │   ├── splitter.ts         # PDFSplitter 클래스 (pdf-lib 래퍼)
 │   │   ├── validator.ts        # PDF 파일 검증 로직
-│   │   ├── renderer.ts         # PDF 렌더링 (썸네일 생성, Phase 2)
-│   │   └── merger.ts           # PDF 병합 (Phase 3)
-│   └── utils/
-│       └── download.ts         # 파일 다운로드 유틸리티
+│   │   ├── renderer.ts         # PDF 렌더링 (썸네일 생성)
+│   │   └── merger.ts           # PDF 병합 기능
+│   ├── utils/
+│   │   └── download.ts         # 파일 다운로드 유틸리티
+│   └── utils.ts                # 공통 유틸리티 (cn 함수 등)
 │
 ├── types/                       # TypeScript 타입 정의
 │   └── pdf.ts                  # ProcessedPage, PDFProcessorState 등
 │
-├── public/                      # 정적 파일
-│   ├── index.html
-│   ├── css/
-│   └── js/
+├── public/                      # 정적 파일 (현재 미사용)
 │
 ├── package.json                 # 프로젝트 의존성
 ├── tsconfig.json               # TypeScript 설정
+├── tailwind.config.js          # Tailwind CSS 설정 (darkMode: 'class')
+├── components.json             # shadcn/ui 설정
+├── next.config.js              # Next.js 설정
 ├── init.md                     # PRD (Product Requirements Document)
-└── init-execution-plan.md      # 실행 계획
+├── init-execution-plan.md      # 실행 계획
+└── project-architecture.mdc    # 프로젝트 아키텍처 문서 (본 문서)
 ```
 
 ---
@@ -104,28 +99,33 @@ D:\project\PDF\
 │   Pages/Routes       │   Components Layer                    │
 │                      │                                       │
 │  • app/page.tsx      │  • DragDropUpload    (업로드 UI)      │
-│    - Main UI         │  • FileList          (파일 목록)      │
-│    - State Mgmt      │  • SimplePDFViewer   (뷰어)          │
-│    - ThemeToggle     │  • PDFProcessor      (분할 처리)      │
-│                      │  • DetailedProgress  (진행 상태)      │
-│  • app/api/          │  • DownloadManager   (다운로드)       │
-│    - upload          │  • PreviewGrid       (썸네일 그리드)  │
-│    - files           │  • PagePreview       (썸네일 카드)    │
-│    - files/[name]    │  • ThemeToggle       (다크 모드)      │
+│    - Main UI         │  • PDFProcessor      (분할 처리)      │
+│    - State Mgmt      │  • ProcessingView    (진행 상태)      │
+│    - ThemeToggle     │  • ResultView        (결과 화면)      │
+│                      │  • PreviewGrid       (썸네일 그리드)  │
+│  • app/layout.tsx    │  • PagePreview       (썸네일 카드)    │
+│    - Dark mode       │  • ThemeToggle       (다크 모드)      │
+│    - Metadata        │  • ui/*              (shadcn/ui)     │
+│                      │                                       │
+│  • app/globals.css   │                                       │
+│    - Tailwind        │                                       │
+│    - Dark variables  │                                       │
 ├──────────────────────┴──────────────────────────────────────┤
 │                      Business Logic Layer                    │
 │                                                              │
 │  lib/pdf/                       lib/utils/                  │
 │  • PDFSplitter                  • download                  │
 │    - loadPDF()                  • File save helpers         │
-│    - splitPages()                                           │
+│    - splitPages()               • utils.ts (cn 함수)        │
 │    - createSinglePagePDF()                                  │
-│  • PDFRenderer (Phase 2)       hooks/                      │
+│  • PDFRenderer                  hooks/                      │
 │    - renderPage()               • useProgress               │
 │    - generateThumbnail()        • useTheme                  │
-│    - generateAllThumbnails()                                │
-│  • validator                    contexts/                   │
-│    - File validation            • ThemeContext              │
+│    - generateAllThumbnails()      (localStorage 연동)       │
+│  • PDFMerger                                                │
+│    - mergePages()                                           │
+│  • validator                                                │
+│    - File validation                                        │
 ├─────────────────────────────────────────────────────────────┤
 │                    External Libraries                        │
 │                                                              │
@@ -133,7 +133,9 @@ D:\project\PDF\
 │  • pdfjs-dist       (PDF 렌더링/미리보기)                    │
 │  • jszip            (다중 파일 압축)                         │
 │  • file-saver       (파일 다운로드)                          │
-│  • formidable       (서버 파일 업로드)                       │
+│  • lucide-react     (아이콘)                                │
+│  • tailwindcss      (스타일링)                              │
+│  • class-variance-authority (버튼 변형)                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -141,81 +143,108 @@ D:\project\PDF\
 
 ## 데이터 플로우
 
-### 1. PDF 업로드 플로우
+### 1. PDF 업로드 플로우 (클라이언트 전용)
 
 ```
 사용자 파일 선택/드롭
     ↓
 DragDropUpload 컴포넌트
     ↓
-handleUpload(file: File)
+handleFileUpload(file: File)
     ↓
-POST /api/upload (FormData)
+page.tsx: setCurrentFile(file)
+page.tsx: setAppState('processing')
     ↓
-formidable 파일 저장
+PDFProcessor 컴포넌트 마운트
     ↓
-서버: /uploads 디렉토리 저장
-    ↓
-Response: { file: PDFFile }
-    ↓
-클라이언트: setSelectedFile()
-    ↓
-SimplePDFViewer로 미리보기
+자동으로 분할 시작
 ```
 
 ### 2. PDF 분할 플로우
 
 ```
-사용자 "Split" 버튼 클릭
-    ↓
-handleSplitAnother(file)
-    ↓
-fetch file.url → Blob → File
-    ↓
-setCurrentProcessingFile(file)
-setShowSplitView(true)
-    ↓
 PDFProcessor 컴포넌트 실행
     ↓
 PDFSplitter.loadPDF(file)
     ↓
-PDFSplitter.splitPages(pdfDoc)
+상태: 'loading' → onStateChange 콜백
+    ↓
+PDFSplitter.splitPages(pdfDoc, fileName)
     ├─ for each page:
     │   ├─ PDFDocument.create()
     │   ├─ copyPages([pageIndex])
     │   ├─ newPdf.save() → Uint8Array
-    │   └─ onProgress(%) 콜백
+    │   └─ onProgress(%) 콜백 → 'processing' 상태
     ↓
 onProcessComplete(pages: ProcessedPage[])
     ↓
-setProcessedPages(pages)
+page.tsx: setProcessedPages(pages)
+page.tsx: setAppState('complete')
     ↓
-DownloadManager 활성화
+ResultView 표시
+    ↓
+PreviewGrid에서 썸네일 렌더링 시작
 ```
 
-### 3. 다운로드 플로우
+### 3. 썸네일 렌더링 플로우
+
+```
+PreviewGrid 마운트
+    ↓
+각 PagePreview에서 useEffect 실행
+    ↓
+PDFRenderer.generateThumbnail(page.data, 1, 200)
+    ↓
+PDF.js 동적 로드 (클라이언트 전용)
+    ↓
+Canvas에 렌더링
+    ↓
+Base64 이미지 생성
+    ↓
+<img src={thumbnail} /> 표시
+```
+
+### 4. 다운로드 플로우
 
 ```
 사용자 다운로드 선택
-    ├─ 개별 페이지 다운로드
+    ├─ 개별 페이지 다운로드 (PagePreview)
     │   ↓
-    │   downloadSinglePage(page)
+    │   handleDownload(page)
     │   ↓
     │   new Blob([page.data])
     │   ↓
-    │   file-saver.saveAs()
+    │   file-saver.saveAs(blob, fileName)
     │
-    └─ 전체 ZIP 다운로드
+    └─ 전체 ZIP 다운로드 (ResultView)
         ↓
-        downloadAllAsZip()
+        handleDownloadAll()
         ↓
         JSZip.create()
         ↓
-        for each page: zip.file(name, data)
+        for each page: zip.file(page.fileName, page.data)
         ↓
         zip.generateAsync({ type: 'blob' })
         ↓
-        file-saver.saveAs()
+        file-saver.saveAs(zipBlob, `${baseName}_split.zip`)
+```
+
+### 5. 테마 전환 플로우
+
+```
+사용자 ThemeToggle 클릭
+    ↓
+useTheme.toggleTheme()
+    ↓
+newTheme = theme === 'dark' ? 'light' : 'dark'
+    ↓
+localStorage.setItem('theme', newTheme)
+    ↓
+document.documentElement.classList.toggle('dark')
+    ↓
+CSS 변수 자동 전환 (.dark 클래스)
+    ↓
+모든 컴포넌트 색상 업데이트
 ```
 
 ---
@@ -227,23 +256,21 @@ DownloadManager 활성화
 **역할**: 전체 애플리케이션의 상태 관리 및 뷰 전환
 
 **주요 State**:
-- `files`: 업로드된 PDF 파일 목록
-- `selectedFile`: 현재 선택된 PDF
-- `currentProcessingFile`: 분할 중인 PDF File 객체
-- `processingState`: 처리 진행 상태 (idle/loading/processing/complete/error)
+- `appState`: 'idle' | 'processing' | 'complete' (3단계 상태)
+- `currentFile`: 현재 처리 중인 File 객체
 - `processedPages`: 분할된 페이지 데이터 배열
-- `showSplitView`: 분할 뷰 표시 여부
+- `processingState`: 처리 진행 상태 (PDFProcessorState)
 
 **주요 함수**:
-- `handleUpload()`: 파일 업로드 및 자동 분할 시작
-- `handleDelete()`: 파일 삭제
-- `handleProcessComplete()`: 분할 완료 시 처리
-- `handleSplitAnother()`: 기존 파일 재분할
-- `handleBackToUpload()`: 업로드 화면으로 돌아가기
+- `handleFileUpload(file)`: 파일 업로드 및 자동 분할 시작
+- `handleProcessComplete(pages)`: 분할 완료 시 처리
+- `handleProcessError(error)`: 에러 처리
+- `handleReset()`: 초기 상태로 리셋
 
 **뷰 전환**:
-- `showSplitView === false`: 업로드 + 파일 목록 + 뷰어
-- `showSplitView === true`: 분할 진행 상황 + 다운로드 관리
+- `appState === 'idle'`: DragDropUpload (업로드 화면)
+- `appState === 'processing'`: ProcessingView (진행 상태)
+- `appState === 'complete'`: ResultView (결과 + 다운로드)
 
 ### 2. `components/PDFProcessor.tsx`
 
@@ -301,21 +328,57 @@ class PDFSplitter {
   - Uint8Array로 저장
   - ProcessedPage 객체 생성
 
-### 4. `components/DownloadManager.tsx`
+### 4. `components/ResultView.tsx`
 
-**역할**: 분할된 페이지 다운로드 관리
+**역할**: 분할 완료 후 결과 화면 표시
 
 **Props**:
 - `pages`: ProcessedPage[]
 - `originalFileName`: 원본 파일명
+- `onReset`: 초기 화면으로 돌아가기 콜백
 
 **기능**:
-- 개별 페이지 다운로드 (file-saver)
-- 전체 페이지 ZIP 다운로드 (jszip + file-saver)
-- 다운로드 진행 상태 표시
-- **그리드/리스트 뷰 전환** (Phase 2)
+- 성공 알림 (Alert)
+- Download All (ZIP) 버튼
+- Split Another 버튼 (새 파일 업로드)
+- PreviewGrid 렌더링
 
-### 5. `lib/pdf/renderer.ts` (PDFRenderer 클래스) - Phase 2
+### 5. `components/PreviewGrid.tsx`
+
+**역할**: 페이지 썸네일 그리드 표시
+
+**Props**:
+- `pages`: ProcessedPage[]
+
+**기능**:
+- 반응형 그리드 레이아웃 (grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6)
+- PagePreview 컴포넌트 렌더링
+- 자동 스크롤
+
+### 6. `components/PagePreview.tsx`
+
+**역할**: 개별 페이지 썸네일 카드
+
+**Props**:
+- `page`: ProcessedPage
+- `thumbnail?`: string (Base64 이미지, 옵셔널)
+
+**기능**:
+- 썸네일 자동 생성 (useEffect + PDFRenderer)
+- Download 버튼 (개별 페이지 다운로드)
+- 페이지 번호 뱃지
+- 로딩 스피너
+
+### 7. `components/ThemeToggle.tsx`
+
+**역할**: 다크/라이트 모드 전환 토글 버튼
+
+**기능**:
+- 우측 상단 고정 (fixed top-4 right-4)
+- 아이콘 자동 전환 (Sun ↔ Moon)
+- useTheme 훅 사용
+
+### 8. `lib/pdf/renderer.ts` (PDFRenderer 클래스)
 
 **역할**: PDF.js를 사용하여 PDF 페이지를 이미지로 렌더링
 
@@ -355,40 +418,7 @@ class PDFRenderer {
 - Base64 이미지 반환
 - 진행 상태 콜백 지원
 
-### 6. `components/PreviewGrid.tsx` - Phase 2
-
-**역할**: 페이지 썸네일 그리드 표시
-
-**Props**:
-- `pages`: ProcessedPage[]
-- `selectedPages`: number[]
-- `onPageSelect`: (pageNumber: number) => void
-- `thumbnailSize`: number (기본 200px)
-
-**기능**:
-- 썸네일 자동 생성 및 캐싱
-- 반응형 그리드 레이아웃 (2-6열)
-- 페이지 선택/해제
-- 전체 선택/해제
-- 로딩 진행 상태 표시
-
-### 7. `components/PagePreview.tsx` - Phase 2
-
-**역할**: 개별 페이지 썸네일 카드
-
-**Props**:
-- `pageData`: Uint8Array
-- `pageNumber`: number
-- `thumbnail`: string (Base64 이미지)
-- `isSelected`: boolean
-- `onSelect`: () => void
-
-**특징**:
-- 선택 상태 시각적 표시 (링 효과)
-- 로딩/에러 상태 처리
-- 호버 효과
-
-### 8. `hooks/useProgress.ts` - Phase 2
+### 9. `hooks/useProgress.ts`
 
 **역할**: 진행 상태 관리 및 통계 계산
 
@@ -413,100 +443,49 @@ interface ProgressData {
 - `formatTime()`: 시간 포맷팅
 - `getStepLabel()`: 단계 레이블
 
-### 9. `components/DetailedProgress.tsx` - Phase 2
+### 10. `hooks/useTheme.ts`
 
-**역할**: 상세 진행 상태 표시
-
-**기능**:
-- 4단계 진행 상태 (loading → processing → generating → complete)
-- 실시간 통계 (현재 페이지, 경과 시간, 처리 속도, 예상 시간)
-- 그라디언트 프로그레스 바
-- 단계별 아이콘 및 상태 표시
-
-### 10. `contexts/ThemeContext.tsx` - Phase 2
-
-**역할**: 테마 관리 Context
+**역할**: 테마 상태 관리 Hook
 
 **지원 테마**:
 - `light`: 라이트 모드
 - `dark`: 다크 모드
-- `system`: 시스템 설정 자동 감지
 
 **기능**:
-- 시스템 테마 자동 감지 (`prefers-color-scheme`)
-- 로컬 스토리지 저장
-- 실시간 테마 전환
-- 메타 테마 색상 업데이트
+- localStorage에 테마 저장
+- `toggleTheme()`: 테마 전환 함수
+- `document.documentElement.classList.toggle('dark')` 자동 적용
+- 페이지 로드 시 저장된 테마 복원
 
-### 11. `components/ThemeToggle.tsx` - Phase 2
+**반환값**:
+```typescript
+{
+  theme: 'light' | 'dark',
+  toggleTheme: () => void
+}
+```
 
-**역할**: 테마 전환 토글 버튼
+### 11. `components/ProcessingView.tsx`
+
+**역할**: 처리 진행 상태 표시
+
+**Props**:
+- `state`: PDFProcessorState
+- `fileName`: string
 
 **기능**:
-- 클릭 시 light → dark → system 순환
-- 현재 테마 아이콘 표시
-- 툴팁 지원
+- 진행 상태 표시 (로딩/처리 중)
+- Progress 바
+- 현재 페이지/전체 페이지 표시
+- 파일명 표시
 
 ---
 
 ## API 엔드포인트
 
-### `POST /api/upload`
+**참고**: 현재 버전은 100% 클라이언트 사이드 처리로 API 엔드포인트를 사용하지 않습니다.
 
-**설명**: PDF 파일 업로드
-
-**Request**:
-- Content-Type: `multipart/form-data`
-- Field: `pdf` (File)
-
-**Response**:
-```json
-{
-  "file": {
-    "filename": "1738234567890-document.pdf",
-    "originalName": "document.pdf",
-    "url": "/uploads/1738234567890-document.pdf",
-    "size": 123456,
-    "uploadedAt": "2025-09-30T12:34:56.789Z"
-  }
-}
-```
-
-### `GET /api/files`
-
-**설명**: 업로드된 파일 목록 조회
-
-**Response**:
-```json
-{
-  "files": [
-    {
-      "filename": "1738234567890-document.pdf",
-      "originalName": "document.pdf",
-      "url": "/uploads/1738234567890-document.pdf",
-      "size": 123456,
-      "uploadedAt": "2025-09-30T12:34:56.789Z"
-    }
-  ]
-}
-```
-
-### `GET /api/files/[filename]`
-
-**설명**: 특정 파일 다운로드
-
-**Response**: PDF 파일 스트림 (Content-Type: application/pdf)
-
-### `DELETE /api/files/[filename]`
-
-**설명**: 파일 삭제
-
-**Response**:
-```json
-{
-  "success": true
-}
-```
+모든 PDF 처리는 브라우저에서 수행되며, 서버로 파일이 전송되지 않습니다.
 
 ---
 
@@ -558,36 +537,43 @@ export interface PDFFile {
 
 ```
 App (page.tsx)
-├─ State: files, selectedFile, processingState, processedPages
+├─ State: appState, currentFile, processedPages, processingState
+├─ ThemeToggle (고정 위치)
 │
-├─ DragDropUpload
-│  └─ onUpload(file) → handleUpload()
+├─ [appState === 'idle']
+│  └─ DragDropUpload
+│     └─ onUpload(file) → handleFileUpload()
 │
-├─ FileList
-│  ├─ onSelect(file) → setSelectedFile()
-│  ├─ onDelete(filename) → handleDelete()
-│  └─ onSplit(file) → handleSplitAnother()
+├─ [appState === 'processing']
+│  ├─ ProcessingView
+│  │  ├─ state={processingState}
+│  │  └─ fileName={currentFile?.name}
+│  │
+│  └─ PDFProcessor (hidden, 실제 처리)
+│     ├─ file={currentFile}
+│     ├─ onStateChange={setProcessingState}
+│     ├─ onProcessComplete={handleProcessComplete}
+│     └─ onError={handleProcessError}
 │
-├─ SimplePDFViewer
-│  └─ file={selectedFile}
-│
-├─ PDFProcessor (hidden)
-│  ├─ file={currentProcessingFile}
-│  ├─ onStateChange={setProcessingState}
-│  ├─ onProcessComplete={handleProcessComplete}
-│  └─ onError={handleProcessError}
-│
-├─ ProcessingStatus
-│  └─ state={processingState}
-│
-└─ DownloadManager
-   ├─ pages={processedPages}
-   └─ originalFileName={currentProcessingFile?.name}
+└─ [appState === 'complete']
+   └─ ResultView
+      ├─ pages={processedPages}
+      ├─ originalFileName={currentFile?.name}
+      ├─ onReset={handleReset}
+      │
+      └─ PreviewGrid
+         └─ pages.map(page =>
+            PagePreview
+            ├─ page={page}
+            └─ (썸네일 자동 생성)
+         )
 ```
 
 **특징**:
-- 단일 페이지 애플리케이션으로 상태가 `page.tsx`에 집중
-- Props Drilling 방식 사용 (복잡도가 낮아 Context API 불필요)
+- 단일 페이지 애플리케이션 (SPA)
+- 상태가 `page.tsx`에 집중 (단순한 Props Drilling)
+- 3단계 상태 전환 (idle → processing → complete)
+- Context API 불필요 (복잡도 낮음)
 - 각 컴포넌트는 단일 책임 원칙 준수
 
 ---
@@ -661,25 +647,25 @@ UPLOAD_DIR=./uploads
 
 ## 개발 현황
 
-### Phase 1 (MVP) ✅ 완료
-- ✅ PDF 업로드 및 분할 기능
-- ✅ 개별/일괄 다운로드
-- ✅ 기본 진행 상태 표시
-- ✅ 파일 관리 시스템
+### 현재 버전 특징
 
-### Phase 2 (사용자 경험 개선) ✅ 완료
-- ✅ 페이지 썸네일 미리보기 그리드
-- ✅ 상세 진행 상태 표시 (시간, 속도, 예상 시간)
-- ✅ 다크 모드 지원 (light/dark/system)
-- ✅ 그리드/리스트 뷰 전환
-- ✅ 애니메이션 및 전환 효과
+✅ **구현 완료**:
+- PDF 드래그 앤 드롭 업로드
+- 클라이언트 사이드 PDF 분할 (pdf-lib)
+- 페이지 썸네일 미리보기 (pdfjs-dist)
+- 개별 페이지 다운로드
+- 전체 페이지 ZIP 다운로드 (jszip)
+- 다크 모드 / 라이트 모드 전환 (localStorage 저장)
+- 반응형 그리드 레이아웃
+- 진행 상태 표시 (Progress bar)
+- shadcn/ui 컴포넌트 시스템
 
-### Phase 3 (고급 기능) ✅ 완료 (부분)
-- ✅ 선택적 페이지 분할 (범위 선택, Shift/Ctrl 키)
-- ✅ PDF 병합 기능 (선택한 페이지 병합)
-- ✅ 고급 선택 툴바 (짝수/홀수, 범위 입력, 반전)
-- ⏳ 페이지 순서 변경 (Drag & Drop) - 미구현
-- ⏳ 다국어 지원 (i18n) - 미구현
+📋 **향후 개선 가능 사항**:
+- 페이지 선택 기능 (특정 페이지만 분할)
+- 페이지 병합 기능
+- 페이지 순서 변경 (Drag & Drop)
+- 다국어 지원 (i18n)
+- 상세 진행 통계 (시간, 속도)
 
 ## 확장 가능성
 
@@ -752,28 +738,35 @@ UPLOAD_DIR=./uploads
 
 ## 변경 이력
 
-### v3.0 (2025-09-30)
-- Phase 3 완료 (부분): 선택적 페이지 처리, PDF 병합
-- 새 컴포넌트: SelectionToolbar
-- 새 라이브러리: PDFMerger (병합 기능)
-- 새 Hook: usePageSelection (Shift/Ctrl 선택 지원)
-- 고급 선택 기능: 짝수/홀수, 범위 입력, 반전 선택
-- 병합 기능: 선택한 페이지를 하나의 PDF로 병합
+### v2.5 (2025-10-02) - 현재 버전
+- **다크 모드 구현**:
+  - 전체 서비스 다크 모드 기본 적용
+  - ThemeToggle 컴포넌트 추가 (우측 상단 고정)
+  - useTheme Hook 구현 (localStorage 연동)
+  - Tailwind CSS dark mode 설정 (class 기반)
+  - globals.css 다크 모드 CSS 변수 정의
+- **버튼 스타일 개선**:
+  - outline 버튼 텍스트 색상 수정 (다크/라이트 모두 명확하게 표시)
+  - 호버 상태 텍스트 색상 최적화
+- **아키텍처 문서 업데이트**:
+  - 프로젝트 구조 최신화
+  - 컴포넌트 설명 업데이트
+  - 데이터 플로우에 테마 전환 플로우 추가
 
 ### v2.0 (2025-09-30)
-- Phase 2 완료: 미리보기, 진행 상태 개선, 다크 모드
-- 새 컴포넌트 추가: PreviewGrid, PagePreview, DetailedProgress, ThemeToggle
-- 새 라이브러리: PDFRenderer (PDF.js 통합)
-- 새 Hook: useProgress
-- 새 Context: ThemeContext
-- 트러블슈팅 가이드 업데이트
+- shadcn/ui 컴포넌트 시스템 도입
+- 썸네일 미리보기 그리드 구현
+- PDFRenderer 클래스 구현 (pdfjs-dist)
+- 3단계 상태 관리 (idle/processing/complete)
+- 반응형 디자인
 
 ### v1.0 (2025-09-28)
-- Phase 1 완료: MVP 기본 기능
+- MVP 기본 기능
 - PDF 업로드, 분할, 다운로드 기능
+- 클라이언트 사이드 처리
 
 ---
 
-**문서 버전**: 3.0
-**최종 업데이트**: 2025-09-30
+**문서 버전**: 2.5
+**최종 업데이트**: 2025-10-02
 **작성자**: AI Assistant

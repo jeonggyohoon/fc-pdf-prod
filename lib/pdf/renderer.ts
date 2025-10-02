@@ -28,13 +28,24 @@ export class PDFRenderer {
     this.isInitializing = true
     this.initPromise = (async () => {
       try {
-        const pdfjs = await import('pdfjs-dist/build/pdf.mjs')
+        // 전역 객체에서 PDF.js 확인
+        if ((window as any).pdfjsLib) {
+          this.pdfjsLib = (window as any).pdfjsLib
+          console.log('PDF.js loaded from global:', this.pdfjsLib.version)
+          return this.pdfjsLib
+        }
 
-        // Worker 설정
-        pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+        // CDN에서 동적 로드
+        await this.loadPdfjsFromCDN()
 
-        this.pdfjsLib = pdfjs
-        return pdfjs
+        if (!(window as any).pdfjsLib) {
+          throw new Error('PDF.js failed to load from CDN')
+        }
+
+        this.pdfjsLib = (window as any).pdfjsLib
+        console.log('PDF.js loaded from CDN:', this.pdfjsLib.version)
+
+        return this.pdfjsLib
       } catch (error) {
         console.error('Failed to load pdfjs-dist:', error)
         throw new Error('Failed to initialize PDF.js library')
@@ -44,6 +55,31 @@ export class PDFRenderer {
     })()
 
     return this.initPromise
+  }
+
+  private loadPdfjsFromCDN(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if ((window as any).pdfjsLib) {
+        resolve()
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+      script.onload = () => {
+        if ((window as any).pdfjsLib) {
+          const pdfjsLib = (window as any).pdfjsLib
+          pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+          console.log('PDF.js CDN script loaded')
+          resolve()
+        } else {
+          reject(new Error('PDF.js library not found on window'))
+        }
+      }
+      script.onerror = () => reject(new Error('Failed to load PDF.js from CDN'))
+      document.head.appendChild(script)
+    })
   }
 
   /**
@@ -119,8 +155,17 @@ export class PDFRenderer {
   ): Promise<string> {
     try {
       const pdfjs = await this.ensurePdfjs()
-      const loadingTask = pdfjs.getDocument({ data: pdfData })
+
+      console.log('Generating thumbnail for page:', pageNum, 'data size:', pdfData.byteLength)
+
+      // Uint8Array를 복사하여 ArrayBuffer detach 문제 방지
+      const dataCopy = new Uint8Array(pdfData)
+
+      const loadingTask = pdfjs.getDocument({ data: dataCopy })
       const pdf = await loadingTask.promise
+
+      console.log('PDF loaded, total pages:', pdf.numPages)
+
       const page = await pdf.getPage(pageNum)
 
       // 원본 뷰포트 가져오기
@@ -149,15 +194,16 @@ export class PDFRenderer {
 
       await page.render(renderContext).promise
 
-      // JPEG로 변환 (파일 크기 최적화)
-      const imageData = canvas.toDataURL('image/jpeg', 0.8)
+      // PNG로 변환 (고품질)
+      const imageData = canvas.toDataURL('image/png')
 
       // 메모리 정리
       page.cleanup()
 
       return imageData
     } catch (error) {
-      console.error('Error generating thumbnail:', error)
+      console.error('Error generating thumbnail for page', pageNum, ':', error)
+      console.error('PDF data type:', pdfData.constructor.name, 'length:', pdfData.byteLength)
       throw new Error(`Failed to generate thumbnail for page ${pageNum}`)
     }
   }

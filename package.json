@@ -13,20 +13,27 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@radix-ui/react-progress": "^1.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/formidable": "^3.4.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "file-saver": "^2.0.5",
     "formidable": "^3.5.4",
     "jszip": "^3.10.1",
+    "lucide-react": "^0.544.0",
     "multer": "^2.0.2",
     "next": "^15.5.4",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.149",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

@@ -16,12 +16,6 @@ const nextConfig = {
       };
     }
 
-    // pdfjs-dist ESM 지원을 위한 설정
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'pdfjs-dist': 'pdfjs-dist/build/pdf.mjs',
-    };
-
     // pdfjs-dist의 worker와 canvas 파일을 정적 리소스로 처리
     config.module = config.module || {};
     config.module.rules = config.module.rules || [];
