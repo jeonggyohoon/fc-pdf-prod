@@ -19,7 +19,7 @@ export default function PagePreview({ page, thumbnail }: PagePreviewProps) {
   const handleDownload = async () => {
     setDownloading(true)
     try {
-      const blob = new Blob([page.data as BlobPart], { type: 'application/pdf' })
+      const blob = new Blob([page.data as any], { type: 'application/pdf' })
       saveAs(blob, page.fileName)
     } catch (error) {
       console.error('Error downloading page:', error)

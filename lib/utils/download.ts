@@ -4,7 +4,7 @@ import { ProcessedPage } from '@/types/pdf'
 
 export class DownloadHelper {
   static downloadSingleFile(data: Uint8Array, fileName: string): void {
-    const blob = new Blob([data], { type: 'application/pdf' })
+    const blob = new Blob([data as BlobPart], { type: 'application/pdf' })
     saveAs(blob, fileName)
   }
 
